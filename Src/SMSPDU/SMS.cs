@@ -246,12 +246,20 @@ namespace SMSPDULib
 				case SMSEncoding.UCS2:
 					messageBytes = EncodeUCS2(_message);
 					break;
+				case SMSEncoding._7bit:
+					messageBytes = Encode7bit( _message );
+					break;
 				default:
 					messageBytes = new byte[0];
 					break;
 			}
 
-			encodedData += Convert.ToString(messageBytes.Length, 16).PadLeft(2, '0'); //Length of message
+			if( messageEncoding == SMSEncoding._7bit ) {
+				encodedData += Convert.ToString( _message.Length, 16 ).PadLeft( 2, '0' ); //Length of message
+			}
+			else {
+				encodedData += Convert.ToString( messageBytes.Length, 16 ).PadLeft( 2, '0' ); //Length of message
+			}
 
 			foreach (byte b in messageBytes)
 				encodedData += Convert.ToString(b, 16).PadLeft(2, '0');

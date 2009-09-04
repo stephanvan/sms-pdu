@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Collections;
 
 namespace SMSPDULib
 {
@@ -29,206 +30,266 @@ namespace SMSPDULib
 	{
 		#region Public Statics (Pops, Peeks, Gets)
 
-		public static byte[] GetInvertBytes(string source)
+		public static byte[] GetInvertBytes( string source )
 		{
-			byte[] bytes = GetBytes(source);
+			byte[] bytes = GetBytes( source );
 
-			Array.Reverse(bytes);
+			Array.Reverse( bytes );
 
 			return bytes;
 		}
 
-		public static byte[] GetBytes(string source)
+		public static byte[] GetBytes( string source )
 		{
-			return GetBytes(source, 16);
+			return GetBytes( source, 16 );
 		}
 
-		public static byte[] GetBytes(string source, int fromBase)
+		public static byte[] GetBytes( string source, int fromBase )
 		{
 			List<byte> bytes = new List<byte>();
 
-			for (int i = 0; i < source.Length / 2; i++)
-				bytes.Add(Convert.ToByte(source.Substring(i * 2, 2), fromBase));
+			for( int i = 0; i < source.Length / 2; i++ )
+				bytes.Add( Convert.ToByte( source.Substring( i * 2, 2 ), fromBase ) );
 
 			return bytes.ToArray();
 		}
 
-		public static string Decode7bit(string source, int length)
+		public static string Decode7bit( string source, int length )
 		{
-			byte[] bytes = GetInvertBytes(source);
+			byte[] bytes = GetInvertBytes( source );
 
 			string binary = string.Empty;
 
-			foreach (byte b in bytes)
-				binary += Convert.ToString(b, 2).PadLeft(8, '0');
+			foreach( byte b in bytes )
+				binary += Convert.ToString( b, 2 ).PadLeft( 8, '0' );
 
-			binary = binary.PadRight(length * 7, '0');
+			binary = binary.PadRight( length * 7, '0' );
 
 			string result = string.Empty;
 
-			for (int i = 1; i <= length; i++)
-				result += (char) Convert.ToByte(binary.Substring(binary.Length - i * 7, 7), 2);
+			for( int i = 1; i <= length; i++ )
+				result += (char)Convert.ToByte( binary.Substring( binary.Length - i * 7, 7 ), 2 );
 
-			return result.Replace('\x0', '\x40');
+			return result.Replace( '\x0', '\x40' );
 		}
 
-		public static string Decode8bit(string source, int length)
+		public static string Decode8bit( string source, int length )
 		{
-			byte[] bytes = GetBytes(source.Substring(0, length * 2));
+			byte[] bytes = GetBytes( source.Substring( 0, length * 2 ) );
 
 			//or ASCII?
-			return Encoding.UTF8.GetString(bytes);
+			return Encoding.UTF8.GetString( bytes );
 		}
 
 
-		public static string DecodeUCS2(string source, int length)
+		public static string DecodeUCS2( string source, int length )
 		{
-			byte[] bytes = GetBytes(source.Substring(0, length * 2));
+			byte[] bytes = GetBytes( source.Substring( 0, length * 2 ) );
 
-			return Encoding.BigEndianUnicode.GetString(bytes);
+			return Encoding.BigEndianUnicode.GetString( bytes );
 		}
 
-		public static byte[] EncodeUCS2(string s)
+		public static byte[] EncodeUCS2( string s )
 		{
-			return Encoding.BigEndianUnicode.GetBytes(s);
+			return Encoding.BigEndianUnicode.GetBytes( s );
 		}
 
-		public static string ReverseBits(string source)
+		public byte[] Encode7bit( string _message )
 		{
-			return ReverseBits(source, source.Length);
+			List<byte> final = new List<byte>();
+
+			if( !string.IsNullOrEmpty( _message ) ) {
+				// Encodes according to http://www.dreamfabric.com/sms/hello.html
+				byte[] bytes = Encoding.UTF7.GetBytes( _message );
+
+				if( bytes.Length > 0 ) {
+										
+					int consumeBit = 0;
+					int i = 0;
+
+					while( i < bytes.Length ) {
+						byte curr = bytes[i];
+
+						while( consumeBit < 7 && i < bytes.Length ) {
+							// Get the next byte, or a 0 if end of buffer
+							byte next = i < bytes.Length - 1 ? bytes[i + 1] : (byte)0x0;
+							++i;
+
+							// Copy bits from next to curr, placing them at the MSB side, in same order as previously
+							int rightShift = 0;
+							for( int j = consumeBit; j >= 0; --j ) {
+								byte mask = (byte)( 0x80 >> rightShift );
+								if( ( next & ( 1 << j ) ) > 0 ) {
+									curr |= mask;
+								}
+								else {
+									// Reset bit
+									curr &= (byte)~mask;
+								}
+								rightShift++;
+							}
+
+							// Save the 'encoded' byte
+							final.Add( curr );
+
+							// Prepare for next byte
+							++consumeBit;
+							curr = (byte)( next >> consumeBit );
+						}
+						// Move onto next round
+						consumeBit = 0;
+						i++;	
+					}
+				}
+			}
+
+			// Fix any @-characters
+			byte[] finalData = final.ToArray();
+			for( int i = 0; i < finalData.Length; ++i ) {
+				if( finalData[i] == '\x40' ) { // @
+					finalData[i] = (byte)'\x0';
+				}
+			}
+
+			return finalData;
 		}
 
-		public static string ReverseBits(string source, int length)
+		public static string ReverseBits( string source )
+		{
+			return ReverseBits( source, source.Length );
+		}
+
+		public static string ReverseBits( string source, int length )
 		{
 			string result = string.Empty;
 
-			for (int i = 0; i < length; i++)
-				result = result.Insert(i % 2 == 0 ? i : i - 1, source[i].ToString());
+			for( int i = 0; i < length; i++ )
+				result = result.Insert( i % 2 == 0 ? i : i - 1, source[i].ToString() );
 
 			return result;
 		}
 
-		public static byte PeekByte(string source)
+		public static byte PeekByte( string source )
 		{
-			return PeekByte(source, 0);
+			return PeekByte( source, 0 );
 		}
 
-		public static byte PeekByte(string source, int byteIndex)
+		public static byte PeekByte( string source, int byteIndex )
 		{
-			return Convert.ToByte(source.Substring(byteIndex * 2, 2), 16);
+			return Convert.ToByte( source.Substring( byteIndex * 2, 2 ), 16 );
 		}
 
-		public static byte PopByte(ref string source)
+		public static byte PopByte( ref string source )
 		{
-			byte b = Convert.ToByte(source.Substring(0, 2), 16);
+			byte b = Convert.ToByte( source.Substring( 0, 2 ), 16 );
 
-			source = source.Substring(2);
+			source = source.Substring( 2 );
 
 			return b;
 		}
 
-		public static byte[] PopBytes(ref string source, int length)
+		public static byte[] PopBytes( ref string source, int length )
 		{
-			string bytes = source.Substring(0, length * 2);
-			
-			source = source.Substring(length * 2);
+			string bytes = source.Substring( 0, length * 2 );
 
-			return GetBytes(bytes);
+			source = source.Substring( length * 2 );
+
+			return GetBytes( bytes );
 		}
 
-		public static DateTime PopDate(ref string source)
+		public static DateTime PopDate( ref string source )
 		{
-			byte[] bytes = GetBytes(ReverseBits(source.Substring(0, 12)), 10);
+			byte[] bytes = GetBytes( ReverseBits( source.Substring( 0, 12 ) ), 10 );
 
-			source = source.Substring(14);
+			source = source.Substring( 14 );
 
-			return new DateTime(2000 + bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]);
+			return new DateTime( 2000 + bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5] );
 		}
 
-		public static string PopPhoneNumber(ref string source)
+		public static string PopPhoneNumber( ref string source )
 		{
-			int numberLength = PopByte(ref source);
+			int numberLength = PopByte( ref source );
 
-			if ((numberLength = numberLength + 2) == 2)
+			if( ( numberLength = numberLength + 2 ) == 2 )
 				return string.Empty;
 
-			return PopAddress(ref source, numberLength + (numberLength % 2));
+			return PopAddress( ref source, numberLength + ( numberLength % 2 ) );
 		}
 
-		public static string PopServiceCenterAddress(ref string source)
+		public static string PopServiceCenterAddress( ref string source )
 		{
-			int addressLength = PopByte(ref source);
+			int addressLength = PopByte( ref source );
 
-			if ((addressLength = addressLength * 2) == 0)
+			if( ( addressLength = addressLength * 2 ) == 0 )
 				return string.Empty;
 
-			return PopAddress(ref source, addressLength);
+			return PopAddress( ref source, addressLength );
 		}
 
-		public static string PopAddress(ref string source, int length)
+		public static string PopAddress( ref string source, int length )
 		{
-			string address = source.Substring(0, length);
+			string address = source.Substring( 0, length );
 
-			source = source.Substring(address.Length);
+			source = source.Substring( address.Length );
 
-			byte addressType = PopByte(ref address);
+			byte addressType = PopByte( ref address );
 
-			address = ReverseBits(address).Trim('F');
+			address = ReverseBits( address ).Trim( 'F' );
 
-			if (0x09 == addressType >> 4)
+			if( 0x09 == addressType >> 4 )
 				address = "+" + address;
 
 			return address;
 		}
 
-		public static SMSType GetSMSType(string source)
-        {
-			byte scaLength = PeekByte(source);
-			byte pduType = PeekByte(source, scaLength + 1);
-
-			byte smsType = (byte) ((pduType & 3) >> 1);
-
-			if (!Enum.IsDefined(typeof(SMSType), (int) smsType))
-				throw new UnknownSMSTypeException(pduType);
-
-			return (SMSType) smsType;
-        }
-
-		public static void Fetch(SMSBase sms, ref string source)
+		public static SMSType GetSMSType( string source )
 		{
-			sms._serviceCenterNumber = PopServiceCenterAddress(ref source);
-			
-			sms._pduType = PopByte(ref source);
+			byte scaLength = PeekByte( source );
+			byte pduType = PeekByte( source, scaLength + 1 );
 
-			System.Collections.BitArray bits = new System.Collections.BitArray(new byte[] { sms._pduType });
+			byte smsType = (byte)( ( pduType & 3 ) >> 1 );
+
+			if( !Enum.IsDefined( typeof( SMSType ), (int)smsType ) )
+				throw new UnknownSMSTypeException( pduType );
+
+			return (SMSType)smsType;
+		}
+
+		public static void Fetch( SMSBase sms, ref string source )
+		{
+			sms._serviceCenterNumber = PopServiceCenterAddress( ref source );
+
+			sms._pduType = PopByte( ref source );
+
+			System.Collections.BitArray bits = new System.Collections.BitArray( new byte[] { sms._pduType } );
 
 			sms.ReplyPathExists = bits[7];
 			sms.UserDataStartsWithHeader = bits[6];
 			sms.StatusReportIndication = bits[5];
 
-			sms.ValidityPeriodFormat = (ValidityPeriodFormat) (sms._pduType & 0x18);
-			sms.Direction = (SMSDirection) (sms._pduType & 1);
+			sms.ValidityPeriodFormat = (ValidityPeriodFormat)( sms._pduType & 0x18 );
+			sms.Direction = (SMSDirection)( sms._pduType & 1 );
 		}
 
 		#endregion
 
 		#region Public Statics (Push)
 
-		public static string EncodePhoneNumber(string phoneNumber)
+		public static string EncodePhoneNumber( string phoneNumber )
 		{
-			bool isInternational = phoneNumber.StartsWith("+");
+			bool isInternational = phoneNumber.StartsWith( "+" );
 
-			if (isInternational)
-				phoneNumber = phoneNumber.Remove(0, 1);
+			if( isInternational )
+				phoneNumber = phoneNumber.Remove( 0, 1 );
 
-			int header = (phoneNumber.Length << 8) + 0x81 | (isInternational ? 0x10 : 0x20);
+			int header = ( phoneNumber.Length << 8 ) + 0x81 | ( isInternational ? 0x10 : 0x20 );
 
-			if (phoneNumber.Length % 2 == 1)
-				phoneNumber = phoneNumber.PadRight(phoneNumber.Length + 1, 'F');
+			if( phoneNumber.Length % 2 == 1 )
+				phoneNumber = phoneNumber.PadRight( phoneNumber.Length + 1, 'F' );
 
-			phoneNumber = ReverseBits(phoneNumber);
+			phoneNumber = ReverseBits( phoneNumber );
 
-			return Convert.ToString(header, 16).PadLeft(4, '0') + phoneNumber;
+			return Convert.ToString( header, 16 ).PadLeft( 4, '0' ) + phoneNumber;
 		}
 
 		#endregion
@@ -237,11 +298,11 @@ namespace SMSPDULib
 
 		public virtual void ComposePDUType()
 		{
-			_pduType = (byte) Direction;
-			_pduType = (byte) (_pduType | (int) ValidityPeriodFormat);
+			_pduType = (byte)Direction;
+			_pduType = (byte)( _pduType | (int)ValidityPeriodFormat );
 
-			if (StatusReportIndication)
-				_pduType = (byte) (_pduType | 0x20);
+			if( StatusReportIndication )
+				_pduType = (byte)( _pduType | 0x20 );
 		}
 
 		#endregion
@@ -307,7 +368,7 @@ namespace SMSPDULib
 		public abstract SMSType Type { get; }
 		#endregion
 
-    }
+	}
 
 }
 
