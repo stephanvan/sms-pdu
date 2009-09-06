@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.50727</ProductVersion>
+    <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{B97FF6EB-F55D-46C8-B63D-6DDF4B7802C7}</ProjectGuid>
     <OutputType>Library</OutputType>
@@ -14,6 +14,8 @@
     <UpgradeBackupLocation>
     </UpgradeBackupLocation>
     <OldToolsVersion>2.0</OldToolsVersion>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>SMSPDULib.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -43,6 +45,9 @@
     <Compile Include="SMS.cs" />
     <Compile Include="SMSBase.cs" />
     <Compile Include="SMSStatusReport.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="SMSPDULib.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
