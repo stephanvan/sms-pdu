@@ -38,13 +38,7 @@ namespace SMSPDULib
 		public string Message
 		{
 			get { return _message; }
-			set
-			{
-				if (value.Length > 70)
-					throw new ArgumentOutOfRangeException("Message.Length", value.Length, "Message length can not be greater that 70 chars.");
-				
-				_message = value;
-			}
+			set { _message = value; }
 		}
 
 		public bool RejectDuplicates
@@ -239,27 +233,28 @@ namespace SMSPDULib
 			if (_validityPeriodFormat != ValidityPeriodFormat.FieldNotPresent)
 				encodedData += Convert.ToString(_validityPeriod, 16).PadLeft(2, '0'); //Validity Period
 
-
 			byte[] messageBytes = null;
+			int length = 0;
 
 			switch (messageEncoding) {
 				case SMSEncoding.UCS2:
 					messageBytes = EncodeUCS2(_message);
+					length = messageBytes.Length;
 					break;
 				case SMSEncoding._7bit:
-					messageBytes = Encode7bit( _message );
+					messageBytes = Encode7bit( _message, out length );
 					break;
 				default:
+					//length = 0;
 					messageBytes = new byte[0];
 					break;
 			}
 
-			if( messageEncoding == SMSEncoding._7bit ) {
-				encodedData += Convert.ToString( _message.Length, 16 ).PadLeft( 2, '0' ); //Length of message
-			}
-			else {
-				encodedData += Convert.ToString( messageBytes.Length, 16 ).PadLeft( 2, '0' ); //Length of message
-			}
+			if( length > 160 )
+				throw new ArgumentOutOfRangeException( "Message.Length", length,
+					"Message is too long." );
+
+			encodedData += Convert.ToString( length, 16 ).PadLeft( 2, '0' ); //Length of message
 
 			foreach (byte b in messageBytes)
 				encodedData += Convert.ToString(b, 16).PadLeft(2, '0');
