@@ -65,12 +65,11 @@ namespace SMSPDULib
 
 			binary = binary.PadRight( length * 7, '0' );
 
-			string result = string.Empty;
-
+			List<byte> decodedBytes = new List<byte>();
 			for( int i = 1; i <= length; i++ )
-				result += (char)Convert.ToByte( binary.Substring( binary.Length - i * 7, 7 ), 2 );
+				decodedBytes.Add( Convert.ToByte( binary.Substring( binary.Length - i * 7, 7 ), 2 ) );
 
-			return result.Replace( '\x0', '\x40' );
+			return GSM0338Charset.GSMToUTF( decodedBytes.ToArray() );
 		}
 
 		public static string Decode8bit( string source, int length )
@@ -80,7 +79,6 @@ namespace SMSPDULib
 			//or ASCII?
 			return Encoding.UTF8.GetString( bytes );
 		}
-
 
 		public static string DecodeUCS2( string source, int length )
 		{
@@ -94,13 +92,15 @@ namespace SMSPDULib
 			return Encoding.BigEndianUnicode.GetBytes( s );
 		}
 
-		public byte[] Encode7bit( string _message )
+		public byte[] Encode7bit( string _message, out int length )
 		{
 			List<byte> final = new List<byte>();
-
+			
 			if( !string.IsNullOrEmpty( _message ) ) {
 				// Encodes according to http://www.dreamfabric.com/sms/hello.html
-				byte[] bytes = Encoding.UTF7.GetBytes( _message );
+
+				byte[] bytes = GSM0338Charset.UTFToGSM( _message );
+				length = bytes.Length;
 
 				if( bytes.Length > 0 ) {
 										
@@ -142,16 +142,10 @@ namespace SMSPDULib
 					}
 				}
 			}
+			else
+				length = 0;
 
-			// Fix any @-characters
-			byte[] finalData = final.ToArray();
-			for( int i = 0; i < finalData.Length; ++i ) {
-				if( finalData[i] == '\x40' ) { // @
-					finalData[i] = (byte)'\x0';
-				}
-			}
-
-			return finalData;
+			return final.ToArray();
 		}
 
 		public static string ReverseBits( string source )
