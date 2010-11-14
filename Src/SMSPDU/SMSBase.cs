@@ -230,8 +230,12 @@ namespace SMSPDULib
 
 			address = ReverseBits( address ).Trim( 'F' );
 
-			if( 0x09 == addressType >> 4 )
+			if( 0x09 == addressType >> 4 ) {
 				address = "+" + address;
+			}
+			else if (0x0D == addressType >> 4) {
+				address = Decode7bit(address, (int)Math.Truncate(address.Length * 4.0 / 7.0));
+			}
 
 			return address;
 		}
