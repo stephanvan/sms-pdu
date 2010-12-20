@@ -228,9 +228,9 @@ namespace SMSPDULib
 
 			byte addressType = PopByte( ref address );
 
-			address = ReverseBits( address ).Trim( 'F' );
-
-			if( 0x09 == addressType >> 4 ) {
+			if( 0x09 == addressType >> 4 )
+			{
+				address = ReverseBits( address ).Trim( 'F' );
 				address = "+" + address;
 			}
 			else if (0x0D == addressType >> 4) {
