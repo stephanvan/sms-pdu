@@ -226,15 +226,20 @@ namespace SMSPDULib
 
 			source = source.Substring( address.Length );
 
-			byte addressType = PopByte( ref address );
+			int addressType = PopByte( ref address ) >> 4 & 7;
 
-			if( 0x09 == addressType >> 4 )
+			if (0x01 == addressType) //001 International number
 			{
 				address = ReverseBits( address ).Trim( 'F' );
 				address = "+" + address;
 			}
-			else if (0x0D == addressType >> 4) {
-				address = Decode7bit(address, (int)Math.Truncate(address.Length * 4.0 / 7.0));
+			else if( 0x05 == addressType ) //101 Alphanumeric number
+			{
+				address = Decode7bit( address, (int)Math.Truncate( address.Length * 4.0 / 7.0 ) );
+			}
+			else
+			{
+				address = ReverseBits( address ).Trim( 'F' );
 			}
 
 			return address;
