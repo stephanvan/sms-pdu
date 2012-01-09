@@ -88,5 +88,17 @@ namespace SMSPDULib
 
 			return new String( chars.ToArray() );
 		}
+
+        /// <summary>
+        /// Return a GSM 03.38 equivalent string of input string
+        /// [ummarbhutta@gmail.com]
+        /// </summary>
+        /// <param name="str">Input string</param>
+        /// <returns>Returns a GSM 0338 equivalent string</returns>
+        public static string ConvertToGSM0338String(string str)
+        {
+            byte[] buff = UTFToGSM(str);
+            return Encoding.ASCII.GetString(buff);
+        }
 	}
 }
