@@ -14,6 +14,7 @@ namespace SMSPDULib
 		protected byte _protocolIdentifier;
 		protected byte _dataCodingScheme;
 		protected byte _validityPeriod;
+        protected byte _userDataHeaderLength; //Added against bug 4 https://code.google.com/p/sms-pdu/issues/detail?id=4
 		protected DateTime _serviceCenterTimeStamp;
 		protected string _userData;
 		protected byte[] _userDataHeader;
@@ -354,21 +355,23 @@ namespace SMSPDULib
 			if (userDataLength == 0)
 				return;
 
-			if (sms._userDataStartsWithHeader) {
-				byte userDataHeaderLength = PopByte(ref source);
-				
-				sms._userDataHeader = PopBytes(ref source, userDataHeaderLength);
+            if (sms._userDataStartsWithHeader)
+            {
+                sms._userDataHeaderLength = PeekByte(source);
 
-				userDataLength -= userDataHeaderLength + 1;
-			}
+                sms._userDataHeader = PeekBytes(source, 1, sms._userDataHeaderLength);
+            }
 
 			if (userDataLength == 0)
 				return;
 
-			switch ((SMSEncoding) sms._dataCodingScheme & SMSEncoding.ReservedMask) {
-				case SMSEncoding._7bit:
-					sms._message = Decode7bit(source, userDataLength);
-					break;
+            switch ((SMSEncoding)sms._dataCodingScheme & SMSEncoding.ReservedMask)
+            {
+                case SMSEncoding._7bit:
+                    sms._message = Decode7bit(source, userDataLength);
+                    if (sms._userDataStartsWithHeader && sms._userDataHeaderLength > 0)
+                        sms._message = sms._message.Remove(0, ((sms._userDataHeaderLength + 1) * 8 + ((sms._userDataHeaderLength + 1) * 8) % 7) / 7);
+                    break;
 				case SMSEncoding._8bit:
 					sms._message = Decode8bit(source, userDataLength);
 					break;
