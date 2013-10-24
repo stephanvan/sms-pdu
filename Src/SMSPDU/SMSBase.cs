@@ -28,6 +28,20 @@ namespace SMSPDULib
 	public abstract class SMSBase
 	{
 		#region Public Statics (Pops, Peeks, Gets)
+        /// <summary>
+        /// Remove the bytes from string
+        /// Added against bug 4 https://code.google.com/p/sms-pdu/issues/detail?id=4
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="byteIndex"></param>
+        /// <param name="length"></param>
+        /// <returns></returns>
+        public static byte[] PeekBytes(string source, int byteIndex, int length)
+        {
+            string bytes = source.Substring(byteIndex * 2, length * 2);
+
+            return GetBytes(bytes);
+        }
 
 		public static byte[] GetInvertBytes(string source)
 		{
