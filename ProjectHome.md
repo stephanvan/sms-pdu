@@ -1,0 +1,1 @@
+The SMS PDU library is intended for more transparent interaction with SMS PDU.
